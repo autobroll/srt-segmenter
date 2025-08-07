@@ -13,13 +13,18 @@ def srt_time_to_seconds(time_str):
 def segment_srt():
     try:
         data = request.get_json(force=True)
+        print("🟢 Requête JSON reçue :", data)
+
         srt_text = data.get("srt", "")
-        
+        print("📥 Contenu SRT reçu :", srt_text)
+
         if not srt_text.strip():
+            print("🔴 Erreur : aucun texte SRT fourni")
             return jsonify({"error": "No SRT text provided"}), 400
 
         pattern = r"(\d+)\s+(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})\s+([\s\S]*?)(?=\n\n|\Z)"
         matches = re.findall(pattern, srt_text)
+        print(f"🔍 {len(matches)} blocs détectés dans le SRT")
 
         blocks = {}
 
@@ -44,9 +49,11 @@ def segment_srt():
                 "text": full_text
             })
 
+        print("✅ Résultat final :", output)
         return jsonify({"data": output})
 
     except Exception as e:
+        print("🔥 Erreur serveur :", str(e))
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
