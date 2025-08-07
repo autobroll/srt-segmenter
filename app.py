@@ -11,37 +11,43 @@ def srt_time_to_seconds(time_str):
 
 @app.route('/segment', methods=['POST'])
 def segment_srt():
-    srt_text = request.json.get("srt")
-    if not srt_text:
-        return jsonify({"error": "No SRT text provided"}), 400
+    try:
+        data = request.get_json(force=True)
+        srt_text = data.get("srt", "")
+        
+        if not srt_text.strip():
+            return jsonify({"error": "No SRT text provided"}), 400
 
-    pattern = r"(\d+)\s+(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})\s+([\s\S]*?)(?=\n\n|\Z)"
-    matches = re.findall(pattern, srt_text)
+        pattern = r"(\d+)\s+(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})\s+([\s\S]*?)(?=\n\n|\Z)"
+        matches = re.findall(pattern, srt_text)
 
-    blocks = {}
+        blocks = {}
 
-    for index, start_time, end_time, text in matches:
-        start_sec = srt_time_to_seconds(start_time)
-        group_id = int(start_sec // 10)
+        for index, start_time, end_time, text in matches:
+            start_sec = srt_time_to_seconds(start_time)
+            group_id = int(start_sec // 10)
 
-        if group_id not in blocks:
-            blocks[group_id] = []
+            if group_id not in blocks:
+                blocks[group_id] = []
 
-        blocks[group_id].append(text.strip().replace("\n", " "))
+            blocks[group_id].append(text.strip().replace("\n", " "))
 
-    # Format final : tableau de blocs
-    output = []
-    for gid in sorted(blocks):
-        start = str(timedelta(seconds=gid * 10))
-        end = str(timedelta(seconds=(gid + 1) * 10))
-        full_text = " ".join(blocks[gid])
-        output.append({
-            "start": start,
-            "end": end,
-            "text": full_text
-        })
+        # Format final : tableau de blocs
+        output = []
+        for gid in sorted(blocks):
+            start = str(timedelta(seconds=gid * 10))
+            end = str(timedelta(seconds=(gid + 1) * 10))
+            full_text = " ".join(blocks[gid])
+            output.append({
+                "start": start,
+                "end": end,
+                "text": full_text
+            })
 
-    return jsonify(output)
+        return jsonify({"data": output})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     app.run(port=5000, debug=True)
